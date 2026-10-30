@@ -1,7 +1,9 @@
 import type {ReactNode} from 'react';
 import {brand, trust} from '../data/brand';
-import {moods, products} from '../data/products';
+import {moods} from '../data/products';
+import {useSiteData} from '../data/site';
 import {useReveals} from '../hooks/useReveals';
+import {formatPaise} from '../lib/money';
 
 /**
  * Only what is actually known. Everything is derived from the catalogue
@@ -9,6 +11,7 @@ import {useReveals} from '../hooks/useReveals';
  */
 export function Trust() {
   const ref = useReveals<HTMLElement>();
+  const {products, shipping: ship} = useSiteData();
   const packs = [...new Set(products.flatMap((p) => p.variants.map((v) => v.label)))];
   const shipping = brand.policies.find((p) => p.id === 'shipping');
   const returns = brand.policies.find((p) => p.id === 'returns');
@@ -57,6 +60,12 @@ export function Trust() {
           </Panel>
 
           <Panel n="04" title="Delivery & returns" delay={270}>
+            {ship.feePaise > 0 && (
+              <p className="text-[0.9375rem] text-char/75">
+                Delivery charge {formatPaise(ship.feePaise)}
+                {ship.freeOverPaise ? ` · free on orders over ${formatPaise(ship.freeOverPaise)}` : ''}
+              </p>
+            )}
             <PolicyLine label="Shipping" body={shipping?.body ?? null} />
             <PolicyLine label="Returns" body={returns?.body ?? null} />
           </Panel>

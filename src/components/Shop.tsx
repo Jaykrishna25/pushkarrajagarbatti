@@ -1,6 +1,7 @@
 import {useId, useMemo, useState} from 'react';
 import {brand} from '../data/brand';
-import {defaultVariant, findProduct, isAvailable, moods, products, stockLabel, type Product, type Variant} from '../data/products';
+import {defaultVariant, findProduct, isAvailable, moods, stockLabel, type Product, type Variant} from '../data/products';
+import {useSiteData} from '../data/site';
 import {useReveals} from '../hooks/useReveals';
 import {useShop} from '../hooks/useShop';
 import {maxQtyFor} from '../lib/cart';
@@ -14,7 +15,8 @@ import {CloseButton, Drawer} from './Drawer';
 
 export function ProductCollection() {
   const ref = useReveals<HTMLElement>();
-  const categories = useMemo(() => ['All', ...new Set(products.map((p) => p.category))], []);
+  const {products, ready, error} = useSiteData();
+  const categories = useMemo(() => ['All', ...new Set(products.map((p) => p.category))], [products]);
   const [filter, setFilter] = useState('All');
   const shown = filter === 'All' ? products : products.filter((p) => p.category === filter);
 
@@ -49,6 +51,16 @@ export function ProductCollection() {
         </p>
       )}
 
+      {!ready && (
+        <ul aria-label="Loading the collection" className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-4 lg:gap-6">
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} className="aspect-[4/6] animate-pulse rounded-[6px] bg-char/6" />
+          ))}
+        </ul>
+      )}
+      {ready && (error || products.length === 0) && (
+        <p className="mt-10 rounded-[6px] bg-ivory p-8 text-center text-body text-char/70 ring-1 ring-char/10">{error ?? 'New fragrances are on their way. Please check back soon.'}</p>
+      )}
       <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-14 lg:grid-cols-4 lg:gap-6">
         {shown.map((p, i) => (
           <li key={p.id} data-reveal style={{transitionDelay: `${i * 90}ms`}}>

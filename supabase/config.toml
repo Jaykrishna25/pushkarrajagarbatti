@@ -1,0 +1,9 @@
+# Only the settings this project relies on. `supabase functions deploy` reads these.
+[functions.create-order]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
+
+[functions.razorpay-webhook]
+verify_jwt = false

@@ -1,100 +1,130 @@
-# Pushkar Raj Agarbatti — website
+# Pushkar Raj Agarbatti: website and shop admin
 
-A scroll-driven fragrance experience with a working cart: Vite 6 · React 19 · TypeScript (strict) · Tailwind CSS v4 · Lenis.
+The project has two parts:
 
-```bash
+- **The website** (`/`) is a scroll-driven fragrance experience with a shop, cart and checkout.
+- **The admin panel** (`/admin`) is where the business owner adds products, changes prices and stock, handles orders and edits the site's details.
+
+Stack: Vite 6 · React 19 · TypeScript (strict) · Tailwind CSS v4 · Lenis · Supabase (database, login, photo storage, server functions) · Razorpay (payments).
+
+```powershell
 npm install
-npm run dev      # http://localhost:5173
-npm run lint     # tsc --noEmit
-npm run build    # type-check + production build → dist/
-npm run preview  # serve dist/ at http://localhost:4173
+npm run dev        # website → http://localhost:5173   admin → http://localhost:5173/admin.html
+npm run lint       # type-check
+npm run build      # production build → dist/
+npm run preview    # serve dist/ → http://localhost:4173
 ```
-
-> **Status: preview build.** All product names, prices, stock levels and the pack artwork are **sample placeholders**. They're labelled as samples on the page. Nothing about the company (its history, ingredients, process, certifications, contact details or policies) has been written in, because none of it has been verified yet. Search the code for `TODO(brand)`.
 
 ---
 
-## What's on the page
+## Demo mode vs live mode
 
-| Section | File | What it does |
+| | **Demo mode** (no Supabase keys set) | **Live mode** (Supabase keys set) |
 |---|---|---|
-| Smoke reveal (hero) | `components/SmokeHero.tsx` | Pinned stage (420svh desktop, 300svh mobile). It starts in darkness with an ember and a thread of smoke. Light then opens behind a cusped arch, the pack rises in, and the headline and message appear. The camera pushes through the arch and the light floods to ivory. |
-| Our Story | `components/BrandStory.tsx` | Starts on the same ivory the hero ends on, so there's no visible cut. A framed "living still" unmasks as it enters, with editorial copy beside it. |
-| Fragrance Journey | `components/FragranceJourney.tsx` | One lit panel per mood. Desktop: pinned horizontal travel. Touch/tablet and reduced motion: a native swipe carousel with snap points. Previous/next buttons and keyboard focus work in both modes. |
-| Our Craft | `components/Craftsmanship.tsx` | A macro shot of the glowing tip that pulls back to the full composition while three captions hand over to one another. |
-| Shop | `components/Shop.tsx` | Category filter, product cards with pack selection, a detail drawer with quantity, and stock states. |
-| Good to know | `components/Trust.tsx` | Built only from known facts: the moods and packs in the catalogue, general incense-safety guidance, and policies (each shown as "will be published" until supplied). |
-| Closing scene | `components/FinalCTA.tsx` | Returns to the dark and the smoke, with **Explore the Collection** linking back to the shop. |
-| Footer | `components/Footer.tsx` | Navigation, product links, contact, policies (opened in a drawer) and copyright. |
-| Cart | `components/CartDrawer.tsx` | Quantities, removal, line totals, subtotal, an empty state, and the checkout boundary. |
+| Admin login | "Open demo" button, no password | Owner's email + password |
+| Products, prices, settings | Saved **only in that browser** | Saved in the database, seen by every visitor |
+| Website shows | Sample products, or the demo edits made in the same browser | The owner's real products |
+| Checkout | Says online checkout isn't connected, and offers WhatsApp/email if a contact number is set | Razorpay payment (UPI, cards, netbanking) |
 
-### Engine
-
-- `lib/scroll.ts` runs **one rAF loop** for the whole page. Lenis advances first, then each scroll-driven component reads its own rect and writes `transform`/`opacity` through refs. Scrolling never triggers a React re-render. React state is used only for real application state: cart, drawers, selected pack, menu, filter.
-- `lib/math.ts` holds `clamp`, `lerp`, `range`, easings, `pinProgress` (pinned sections) and `passProgress` (sections that scroll past).
-- `lib/smoke.ts` draws the procedural incense smoke on a 2D canvas. It combines thin strands that start laminar at the ember and break into turbulence as they climb, soft wisps shed from the strands, and motes drifting in the light. No WebGL and no animation library are used. Particle counts drop on mobile, and each canvas only draws while it's on screen.
-- **Reduced motion:** nothing is pinned, smooth scrolling is off, the smoke is drawn as a still frame, and all copy is visible without scrolling through an animation.
-
-### Cart and money
-
-- All money is **integer paise** (₹1 = 100). The cart stores only `productId`, `variantId` and `qty`, and prices are always looked up from the catalogue. A tampered or stale `localStorage` cart is re-validated on load: unknown or out-of-stock lines are dropped and quantities are clamped.
-- Out-of-stock packs can't be added. Per-pack limits (`maxQty`) are enforced, and a toast confirms each add.
-- The cart persists per device and syncs across open tabs.
+Demo mode lets you show the client how the panel works before any accounts exist. Nothing in it is real, and a yellow banner says so on every admin page.
 
 ---
 
-## Before launch: what the brand needs to supply
+## What the owner can do in `/admin`
 
-Everything is configured in two files: **`src/data/brand.ts`** (words, contact, policies, logo) and **`src/data/products.ts`** (catalogue).
+- **Overview:** paid orders today, sales this month, orders waiting to be packed or shipped, stock alerts, and the latest orders.
+- **Orders:** filter (to pack, packed, shipped, unpaid…) and search by order number, name or phone. Open an order to see the items, totals and delivery address, with buttons to copy the address, call or WhatsApp the customer, add a courier/tracking reference and private notes, and mark it **packed → shipped → delivered** or cancel it.
+  - Unpaid orders can't be shipped, and nobody can mark an order paid by hand. Only a verified Razorpay payment does that.
+  - Cancelling a paid order warns that the refund must also be issued in Razorpay.
+- **Products:** add, edit, hide or delete products. For each product: name, web address, category, look on the website (Floral, Woody, Devotional, Fresh), description, details, and **photos** (resized in the browser, then uploaded).
+  - **Packs and prices:** each pack has its own price, optional MRP (shown struck through), optional limit per order, and either a stock count that goes down with every paid order or a manual in-stock / few-left / out-of-stock setting.
+- **Settings:** home page headline, contact details (email, phone, WhatsApp, address, hours), social links, **delivery charge and free-delivery threshold**, the four policies, the "Our Story" text, the sample-data notice switch, and password change.
 
-### 1. Catalogue → `src/data/products.ts`
-Replace the four `sample-*` products with the real ones. Keep product names exactly as printed on the pack. For each product, set `sample: false` and fill in:
-`id`, `slug`, `name`, `category`, `mood` (`floral | woody | devotional | fresh` controls the panel's colour and texture; add more moods in `moods` if needed), `description`, `details`, `images`, and `variants[]` (`label`, `pricePaise`, optional `originalPricePaise`, `stock`, optional `maxQty`).
-If a field isn't known, leave it out rather than guessing.
-
-### 2. Assets → `public/`
-
-| File | Size / ratio | Purpose |
-|---|---|---|
-| `public/brand/logo.svg` (or `.png`) | vector, or ≥ 600px wide, transparent | Header and footer. Then set `brand.logo` in `brand.ts`. |
-| `public/products/<slug>-front.webp` | 1200×1500 (4:5), transparent or plain background | Product image. Add it to the product's `images[]`, and it replaces the concept pack everywhere automatically. |
-| `public/products/<slug>-alt-*.webp` | 1200×1500 | Extra angles (optional). |
-| `public/brand/og.jpg` | 1200×630 | Social sharing image. Then un-comment the `og:image` tags in `index.html`. |
-| `public/icons/favicon.svg` | square | Replace the placeholder flame icon. |
-
-The empty `backgrounds/`, `atmosphere/` and `textures/` folders are there for photography if you later replace the drawn scenes.
-
-### 3. Words and details → `src/data/brand.ts`
-- `story.paragraphs`: the verified brand story. Then set `story.placeholder = false`.
-- `tagline`: currently the campaign line *"Where Fragrance Meets Divinity."*, used as creative direction. Replace it with the approved line.
-- `contact`, `social`, `legalName`: hidden while `null`.
-- `policies[].body`: shipping, returns, privacy and terms text.
-- `previewNotice`: set to `null` once the real catalogue is in. This removes the "sample" notices.
+Website changes appear on the site's next page load.
 
 ---
 
-## Checkout (needs a server)
+## Going live: step by step
 
-The site does **not** take payments by itself, and it never reports an order as placed. **Proceed to checkout** calls `startCheckout()` in `src/lib/checkout.ts`:
+You need a Supabase account (free to start) and a Razorpay account. Razorpay requires the business's KYC documents before live payments are enabled.
+
+### 1. Create the database
+1. Go to **supabase.com**, create a **New project**, and choose the **Mumbai** region.
+2. Open **SQL Editor → New query**, paste the whole of `supabase/migrations/0001_shop.sql`, and click **Run**.
+   This creates the tables, security rules and photo storage. It's safe to run again.
+
+### 2. Create the owner's login
+1. Go to **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up". Only accounts you create can exist.
+2. Go to **Authentication → Users → Add user**, enter the owner's email and a strong password, and tick **Auto confirm**.
+3. Back in the **SQL Editor**, make that user an admin:
+   ```sql
+   insert into public.admins (user_id)
+   select id from auth.users where email = 'owner@example.com';
+   ```
+   Repeat these steps for each staff member who needs access.
+4. Go to **Authentication → URL Configuration**. Set **Site URL** to your website address, and add `https://your-domain/admin` to **Redirect URLs** so "Forgot password" emails work.
+
+### 3. Connect the website
+In **Project Settings → API**, copy the **Project URL** and the **anon / publishable key**. Put them in Vercel → **Settings → Environment Variables** (or in `.env.local` for local testing):
 
 ```
-POST {VITE_CHECKOUT_ENDPOINT}
-{"items":[{"productId":"…","variantId":"…","qty":1}]}
-→ 200 {"redirectUrl":"https://…payment page…"}
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
 ```
 
-Your server (a serverless function is enough) must:
-1. Look up every product, variant, **price**, stock, shipping and tax itself. Never trust prices from the browser.
-2. Create the order or payment session with your provider (Razorpay, Cashfree, Stripe, …) using its **secret key**, which stays on the server.
-3. Return the provider's hosted payment URL.
-4. Confirm payment through the provider's **webhook**, not the redirect, before marking an order paid or reducing stock.
+Redeploy. The site now reads products from the database. **The database starts empty**, so sign in at `/admin` and add products. (The sample products only appear in demo mode.)
 
-Until `VITE_CHECKOUT_ENDPOINT` is set, the cart says plainly that online checkout isn't connected. If you fill in `contact.whatsapp` or `contact.email`, it also offers to send the order as a message.
+> The anon key is public by design: the security rules decide what it can do. **Never** put the `service_role` key or the Razorpay secret in a `VITE_` variable.
 
-Copy `.env.example` to `.env.local` to configure. Only `VITE_*` values reach the browser, so never put a secret there.
+### 4. Payments (Razorpay)
+1. In Razorpay, go to **Settings → API Keys** and generate keys. Start in **Test mode**.
+2. Deploy the three server functions from PowerShell, inside the project folder:
+   ```powershell
+   npx supabase login
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   npx supabase secrets set RAZORPAY_KEY_ID=rzp_test_xxx RAZORPAY_KEY_SECRET=xxx RAZORPAY_WEBHOOK_SECRET=make-up-a-long-random-string ALLOWED_ORIGINS=https://your-domain
+   npx supabase functions deploy create-order --no-verify-jwt
+   npx supabase functions deploy verify-payment --no-verify-jwt
+   npx supabase functions deploy razorpay-webhook --no-verify-jwt
+   ```
+   Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to the functions automatically.
+3. In Razorpay, go to **Settings → Webhooks → Add new webhook**:
+   - URL: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/razorpay-webhook`
+   - Secret: the same value as `RAZORPAY_WEBHOOK_SECRET`
+   - Events: `payment.captured`, `payment.failed`
+4. Check that **payment capture** is set to *Automatic* (the Razorpay default).
+5. Place a test order on the website using Razorpay's test UPI ID `success@razorpay` or a test card. It should appear in `/admin → Orders` as **Paid · to pack**.
+6. When everything works, swap in the **live** keys with `supabase secrets set …` and update the webhook in live mode.
+
+### How a payment works (and why it's safe)
+1. The browser sends only **product IDs, pack IDs and quantities**, plus the delivery address.
+2. `create-order` looks up every price, checks stock and limits, adds the delivery charge from Settings, saves a *pending* order and opens a Razorpay order for exactly that amount.
+3. The customer pays in Razorpay's own window.
+4. `verify-payment` checks Razorpay's signature with the secret key and confirms the payment with Razorpay's API. Only then does the database mark the order **paid** and count the stock down. The webhook does the same independently, so the order still completes if the customer closes the tab. Both are safe to repeat.
+5. If the amount paid doesn't match the order total, the order is flagged **Check payment** instead of being marked paid.
+
+The database rules enforce all of this, not just the screens: visitors can only read the catalogue; only admins can change products, settings and order status; nobody can rewrite an order's money fields or mark it paid by hand.
+
+---
+
+## Project map
+
+| Path | What |
+|---|---|
+| `src/components/` | Website sections: `SmokeHero`, `BrandStory`, `FragranceJourney`, `Craftsmanship`, `Shop`, `Trust`, `FinalCTA`, `Footer`, `CartDrawer` |
+| `src/data/brand.ts` | Default wording. In live mode, values from Admin → Settings replace it. |
+| `src/data/products.ts` | Product types and the **sample** catalogue (demo mode only) |
+| `src/data/site.ts` | Loads the catalogue and settings: live database → demo store → samples |
+| `src/lib/scroll.ts`, `math.ts`, `smoke.ts` | The single animation loop, scroll maths, and the procedural incense smoke |
+| `src/lib/cart.ts`, `checkout.ts` | The cart (integer paise, re-validated against the catalogue) and the Razorpay flow |
+| `src/admin/` | The admin panel. `api.ts` is the interface; `supabaseApi.ts` is live and `demoApi.ts` is demo. |
+| `supabase/migrations/0001_shop.sql` | Tables, security rules, stock and payment functions |
+| `supabase/functions/` | `create-order`, `verify-payment`, `razorpay-webhook` |
+
+## Still to supply before launch
+- The logo (`public/brand/logo.svg`, then set `brand.logo` in `src/data/brand.ts`), the favicon, and a 1200×630 `public/brand/og.jpg` for social sharing.
+- Real products, prices and photos, entered in `/admin`.
+- Contact details, policies and the brand story, entered in `/admin → Settings`. Razorpay and Indian consumer rules expect shipping, returns, privacy and terms to be published.
 
 ## Deploy
-
-`npm run build` produces a static `dist/` folder that runs on any static host (Vercel, Netlify, Cloudflare Pages, Firebase Hosting). Set `VITE_CHECKOUT_ENDPOINT` and `VITE_SITE_URL` in the host's environment settings.
-
-Fonts load from Google Fonts: Cormorant Garamond (display), Hanken Grotesk (text) and IBM Plex Mono (labels). To self-host them, download the files into `public/fonts/` and replace the `<link>` in `index.html` with `@font-face` rules.
+Push to GitHub and import the repository in Vercel. It detects Vite: the build command is `npm run build` and the output folder is `dist`. `vercel.json` makes `/admin` work and keeps it out of search engines. Add the two `VITE_SUPABASE_*` variables, then redeploy.

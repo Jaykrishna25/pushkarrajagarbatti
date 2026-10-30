@@ -1,5 +1,6 @@
 import {createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode} from 'react';
 import {findVariant} from '../data/products';
+import {useSiteData} from '../data/site';
 import {CART_STORAGE_KEY, cartReducer, itemCount, loadCart, resolveLines, saveCart, subtotalPaise, type CartAction, type CartState, type ResolvedLine} from '../lib/cart';
 
 /**
@@ -32,7 +33,15 @@ export function ShopProvider({children}: {children: ReactNode}) {
   const cartRef = useRef(cart);
   cartRef.current = cart;
 
-  useEffect(() => saveCart(cart), [cart]);
+  // Re-check the saved cart against the catalogue once it has loaded (and
+  // whenever it changes); never save before that, or a slow load would wipe it.
+  const {ready, version} = useSiteData();
+  useEffect(() => {
+    if (ready) dispatch({type: 'replace', state: cartRef.current});
+  }, [ready, version]);
+  useEffect(() => {
+    if (ready) saveCart(cart);
+  }, [cart, ready]);
 
   // Another tab changed the cart.
   useEffect(() => {

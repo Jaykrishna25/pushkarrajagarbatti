@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {brand, nav, type Policy} from '../data/brand';
-import {products} from '../data/products';
+import {useSiteData} from '../data/site';
 import {useShop} from '../hooks/useShop';
 import {Logo} from './Art';
 import {CloseButton, Drawer} from './Drawer';
@@ -11,6 +11,7 @@ const CREDIT: string | null = 'Made by Jaykrishna Navlani';
 
 export function Footer() {
   const {openDetail} = useShop();
+  const {products} = useSiteData();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const c = brand.contact;
   const hasContact = Object.values(c).some(Boolean);

@@ -56,7 +56,7 @@ export const moods: Record<Mood, {label: string; pack: string; packDeep: string;
   fresh: {label: 'Fresh', pack: '#55573A', packDeep: '#33351F', accent: '#DCE0B8', glow: 'rgba(210,220,170,0.45)', panel: '#1A1B12'},
 };
 
-export const products: Product[] = [
+export const sampleProducts: Product[] = [
   {
     id: 'sample-floral',
     slug: 'sample-floral',
@@ -119,7 +119,17 @@ export const products: Product[] = [
   },
 ];
 
-export const findProduct = (id: string) => products.find((p) => p.id === id);
+/**
+ * The catalogue currently on display. Starts as the samples; replaced by
+ * live (or demo) data once loaded — see data/site.ts.
+ */
+let current: Product[] = sampleProducts;
+export const getProducts = () => current;
+export const setProducts = (list: Product[]) => {
+  current = list;
+};
+
+export const findProduct = (id: string) => current.find((p) => p.id === id);
 
 export function findVariant(productId: string, variantId: string): {product: Product; variant: Variant} | undefined {
   const product = findProduct(productId);

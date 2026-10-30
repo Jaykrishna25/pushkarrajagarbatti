@@ -11,13 +11,14 @@ import {SmokeHero} from './components/SmokeHero';
 import {Toast} from './components/Toast';
 import {Trust} from './components/Trust';
 import {brand} from './data/brand';
-import {products} from './data/products';
+import {useSiteData} from './data/site';
 import {useReducedMotion} from './hooks/useReducedMotion';
 import {ShopProvider} from './hooks/useShop';
 import {startScroll} from './lib/scroll';
 
 /** Structured data: organisation always; products only once they're real (not samples). */
 function useStructuredData() {
+  const {products} = useSiteData();
   useEffect(() => {
     const site = import.meta.env.VITE_SITE_URL || location.origin;
     const graph: object[] = [{'@type': 'Organization', name: brand.name, url: site, ...(brand.logo ? {logo: new URL(brand.logo.src, site).href} : {})}];
@@ -44,7 +45,7 @@ function useStructuredData() {
     el.textContent = JSON.stringify({'@context': 'https://schema.org', '@graph': graph});
     document.head.appendChild(el);
     return () => el.remove();
-  }, []);
+  }, [products]);
 }
 
 export default function App() {

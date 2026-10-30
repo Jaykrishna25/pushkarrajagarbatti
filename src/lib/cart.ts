@@ -81,10 +81,17 @@ export function sanitize(raw: unknown): CartState {
   return {lines};
 }
 
+/** Shape-check only — the catalogue may not have loaded yet, so `sanitize` runs later. */
 export function loadCart(): CartState {
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
-    return raw ? sanitize(JSON.parse(raw)) : {lines: []};
+    const raw: unknown = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? 'null');
+    if (!raw || typeof raw !== 'object' || !Array.isArray((raw as CartState).lines)) return {lines: []};
+    return {
+      lines: (raw as CartState).lines
+        .filter((l) => l && typeof l.productId === 'string' && typeof l.variantId === 'string' && Number.isInteger(l.qty) && l.qty > 0)
+        .slice(0, 50)
+        .map((l) => ({productId: l.productId, variantId: l.variantId, qty: Math.min(l.qty, MAX_QTY_DEFAULT)})),
+    };
   } catch {
     return {lines: []};
   }

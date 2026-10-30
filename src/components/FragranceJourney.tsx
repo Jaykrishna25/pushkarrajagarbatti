@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {brand, journey} from '../data/brand';
-import {defaultVariant, isAvailable, moods, products, type Mood, type Product} from '../data/products';
+import {defaultVariant, isAvailable, moods, type Mood, type Product} from '../data/products';
+import {useSiteData} from '../data/site';
 import {useMedia, useReducedMotion} from '../hooks/useReducedMotion';
 import {useShop} from '../hooks/useShop';
 import {clamp, pinProgress} from '../lib/math';
@@ -21,6 +22,7 @@ export function FragranceJourney() {
   const reduced = useReducedMotion();
   const wide = useMedia('(min-width: 1024px)');
   const pinned = wide && !reduced;
+  const {products} = useSiteData();
 
   const rootRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -58,7 +60,7 @@ export function FragranceJourney() {
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [pinned]);
+  }, [pinned, products]);
 
   useEffect(() => {
     let lastKey = '';
@@ -104,7 +106,7 @@ export function FragranceJourney() {
         setIndex(nearest);
       }
     });
-  }, [pinned, reduced]);
+  }, [pinned, reduced, products]);
 
   const goToPanel = (i: number, immediate = false) => {
     const target = clamp(i, 0, products.length - 1);
@@ -122,6 +124,10 @@ export function FragranceJourney() {
       vp.scrollTo({left: panel.offsetLeft - (vp.clientWidth - panel.offsetWidth) / 2, behavior: reduced || immediate ? 'auto' : 'smooth'});
     }
   };
+
+  panelRefs.current.length = products.length;
+  visualRefs.current.length = products.length;
+  if (products.length === 0) return <div id="fragrances" />;
 
   return (
     <section
@@ -144,7 +150,7 @@ export function FragranceJourney() {
           <div className="flex items-center gap-4">
             <span className="font-mono text-label text-ivory/60 tabular-nums" aria-live="polite">
               <span className="text-ivory">{String(index + 1).padStart(2, '0')}</span> / {String(products.length).padStart(2, '0')}
-              <span className="sr-only"> — {moods[products[index]!.mood].label}</span>
+              {products[index] && <span className="sr-only"> — {moods[products[index].mood].label}</span>}
             </span>
             <span aria-hidden="true" className="relative hidden h-px w-28 bg-ivory/15 sm:block">
               <span ref={barRef} className="absolute inset-0 origin-left bg-gold" style={{transform: 'scaleX(0.02)'}} />
